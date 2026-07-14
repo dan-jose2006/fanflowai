@@ -1,0 +1,14 @@
+{
+  "location": "New York / New Jersey Stadium",
+  "temperature_c": 26,
+  "temperature_f": 79,
+  "condition": "Partly Cloudy",
+  "humidity": "65%",
+  "wind_kmh": 14,
+  "forecast": [
+    { "time": "12:00", "temp_c": 24, "condition": "Sunny" },
+    { "time": "15:00", "temp_c": 27, "condition": "Partly Cloudy" },
+    { "time": "18:00", "temp_c": 26, "condition": "Clear" },
+    { "time": "21:00", "temp_c": 22, "condition": "Clear" }
+  ]
+}

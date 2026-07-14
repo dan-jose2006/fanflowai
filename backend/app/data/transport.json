@@ -1,0 +1,5 @@
+[
+  { "id": "t-1", "type": "Subway", "line": "Blue Line", "status": "On Time", "next_departure": "5 min", "crowd_level": "High" },
+  { "id": "t-2", "type": "Bus", "line": "Route 42", "status": "Delayed", "next_departure": "12 min", "crowd_level": "Medium" },
+  { "id": "t-3", "type": "Shuttle", "line": "Stadium Express", "status": "On Time", "next_departure": "2 min", "crowd_level": "Low" }
+]

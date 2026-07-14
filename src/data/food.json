@@ -1,0 +1,6 @@
+[
+  { "id": "f-1", "name": "Burger Kiosk", "type": "Fast Food", "location": "Section 102", "wait_time_mins": 5, "rating": 4.2 },
+  { "id": "f-2", "name": "Taco Stand", "type": "Mexican", "location": "Section 115", "wait_time_mins": 15, "rating": 4.8 },
+  { "id": "f-3", "name": "Vegan Delights", "type": "Vegan", "location": "Section 210", "wait_time_mins": 2, "rating": 4.5 },
+  { "id": "f-4", "name": "Steakhouse Premium", "type": "Dine-in", "location": "VIP Level", "wait_time_mins": 45, "rating": 4.9 }
+]

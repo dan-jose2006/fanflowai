@@ -1,0 +1,6 @@
+[
+  { "id": "p-1", "name": "Stadium Blue Lot", "totalSpots": 5000, "availableSpots": 1200, "status": "open", "price": 40 },
+  { "id": "p-2", "name": "Stadium Green Lot", "totalSpots": 3000, "availableSpots": 50, "status": "nearly_full", "price": 45 },
+  { "id": "p-3", "name": "Downtown Park & Ride", "totalSpots": 8000, "availableSpots": 6500, "status": "open", "price": 15 },
+  { "id": "p-4", "name": "VIP Red Lot", "totalSpots": 1000, "availableSpots": 0, "status": "full", "price": 100 }
+]

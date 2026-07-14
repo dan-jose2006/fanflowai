@@ -1,0 +1,7 @@
+[
+  { "id": "zone-1", "name": "North Entrance", "density": 85, "status": "high", "trend": "increasing" },
+  { "id": "zone-2", "name": "South Plaza", "density": 45, "status": "normal", "trend": "stable" },
+  { "id": "zone-3", "name": "Food Court A", "density": 92, "status": "critical", "trend": "increasing" },
+  { "id": "zone-4", "name": "East Concourse", "density": 30, "status": "low", "trend": "decreasing" },
+  { "id": "zone-5", "name": "Fan Zone VIP", "density": 65, "status": "normal", "trend": "stable" }
+]

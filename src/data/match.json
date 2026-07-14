@@ -1,0 +1,28 @@
+
+{
+  "match_id": "M-104",
+  "status": "In Progress",
+  "time": "72'",
+  "home_team": {
+    "name": "Argentina",
+    "score": 2,
+    "logo": "ARG"
+  },
+  "away_team": {
+    "name": "Brazil",
+    "score": 1,
+    "logo": "BRA"
+  },
+  "events": [
+    { "minute": "14'", "type": "goal", "player": "L. Messi", "team": "home" },
+    { "minute": "45+2'", "type": "yellow_card", "player": "Casemiro", "team": "away" },
+    { "minute": "55'", "type": "goal", "player": "Vinícius Jr.", "team": "away" },
+    { "minute": "68'", "type": "goal", "player": "J. Álvarez", "team": "home" }
+  ],
+  "possession": {
+    "home": 58,
+    "away": 42
+  },
+  "stadium": "MetLife Stadium",
+  "attendance": "81,240"
+}
