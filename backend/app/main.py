@@ -33,8 +33,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,  # No cookies / credentials needed
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Accept"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Accept", "Accept-Language", "X-Requested-With"],
 )
 
 # ── Routers ───────────────────────────────────────────────────────────────────
