@@ -24,6 +24,12 @@ lerna-debug.log*
 *.sln
 *.sw?
 
+# Test output
+coverage
+.nyc_output
+test-results
+junit*.xml
+
 # ==== Python / Backend ====
 __pycache__/
 *.py[cod]
@@ -51,7 +57,13 @@ env/
 ENV/
 .venv/
 
-# ==== Secrets ====
+# ==== Secrets (never commit real .env files) ====
 .env
 .env.*
 !.env.example
+!backend/.env.example
+
+# ==== Vercel ====
+.vercel
+
+.vercel

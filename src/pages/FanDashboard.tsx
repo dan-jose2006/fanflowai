@@ -6,6 +6,24 @@ import parkingData from '../data/parking.json';
 import foodData from '../data/food.json';
 import transportData from '../data/transport.json';
 
+// Static fallback match data — 2022 WC Final (Argentina vs France)
+const STATIC_MATCH = {
+  match_id: '979139',
+  status: 'Match Finished',
+  time: 'Final (Pen)',
+  home_team: { name: 'Argentina', score: 3, logo: 'https://media.api-sports.io/football/teams/26.png' },
+  away_team: { name: 'France', score: 3, logo: 'https://media.api-sports.io/football/teams/2.png' },
+  events: [
+    { minute: "23'", type: 'goal', player: 'L. Messi', team: 'home' },
+    { minute: "36'", type: 'goal', player: 'Á. Di María', team: 'home' },
+    { minute: "80'", type: 'goal', player: 'K. Mbappé', team: 'away' },
+    { minute: "81'", type: 'goal', player: 'K. Mbappé', team: 'away' },
+    { minute: "108'", type: 'goal', player: 'L. Messi', team: 'home' },
+    { minute: "118'", type: 'goal', player: 'K. Mbappé', team: 'away' },
+  ],
+  is_fallback: true
+};
+
 const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }) => {
   if (!isOpen) return null;
   return (
@@ -38,7 +56,7 @@ const FanDashboard = () => {
   const [food, setFood] = useState<any[]>(foodData);
   const [transport, setTransport] = useState<any[]>(transportData);
   const [sosState, setSosState] = useState<'idle' | 'loading' | 'sent'>('idle');
-  const [matchData, setMatchData] = useState<any | null>(null);
+  const [matchData, setMatchData] = useState<any | null>(STATIC_MATCH);
 
   const handleEmergencySOS = async () => {
     setSosState('loading');
@@ -62,10 +80,12 @@ const FanDashboard = () => {
     const fetchTelemetry = async () => {
       try {
         const res = await fetch(`${API_BASE}/api/v1/dashboard`);
-        const data = await res.json();
-        if (data.parking_status?.length) setParking(data.parking_status);
-        if (data.food_court_status?.length) setFood(data.food_court_status);
-        if (data.transport_status?.length) setTransport(data.transport_status);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.parking_status?.length) setParking(data.parking_status);
+          if (data.food_court_status?.length) setFood(data.food_court_status);
+          if (data.transport_status?.length) setTransport(data.transport_status);
+        }
         
         const matchRes = await fetch(`${API_BASE}/api/v1/match/live`);
         if (matchRes.ok) {
@@ -75,7 +95,8 @@ const FanDashboard = () => {
           }
         }
       } catch (e) {
-        console.error("Error fetching live fan telemetry:", e);
+        // Backend offline — static fallbacks already in state
+        console.warn("Fan telemetry API unavailable, using static fallback", e);
       }
     };
     fetchTelemetry();
