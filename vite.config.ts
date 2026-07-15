@@ -8,14 +8,6 @@ export default defineConfig({
     tailwindcss(),
     react(),
   ],
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/tests/setup.ts',
-    css: false,
-    coverage: {
-      exclude: ['node_modules/**', 'dist/**', 'src/tests/**'],
-    },
-  },
+// Test configuration removed (handled separately in vitest.config.ts)
 })
 
