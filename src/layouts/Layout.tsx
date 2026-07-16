@@ -13,11 +13,30 @@ const navItems = [
   { path: '/accessibility', icon: Accessibility, label: 'Accessibility' },
 ] as const;
 
+import { useState, useEffect } from 'react';
+
 const Layout = () => {
   const location = useLocation();
+  const [largeText, setLargeText] = useState(localStorage.getItem('largeText') === 'true');
+  const [highContrast, setHighContrast] = useState(localStorage.getItem('highContrast') === 'true');
+
+  useEffect(() => {
+    const handleAccessibilityUpdate = () => {
+      setLargeText(localStorage.getItem('largeText') === 'true');
+      setHighContrast(localStorage.getItem('highContrast') === 'true');
+    };
+
+    window.addEventListener('storage', handleAccessibilityUpdate);
+    window.addEventListener('accessibility-change', handleAccessibilityUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleAccessibilityUpdate);
+      window.removeEventListener('accessibility-change', handleAccessibilityUpdate);
+    };
+  }, []);
 
   return (
-    <div className="flex flex-col min-h-screen relative overflow-hidden">
+    <div className={`flex flex-col min-h-screen relative overflow-hidden ${largeText ? 'text-lg text-change-large' : ''} ${highContrast ? 'contrast-high bg-black' : ''}`}>
 
       {/* Skip to main content — visible on focus for keyboard users */}
       <a

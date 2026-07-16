@@ -22,6 +22,111 @@ const OrganizerDashboard = () => {
   const [viewMode, setViewMode] = useState<'3d' | 'heatmap' | 'chart'>('3d');
   const [selectedZone, setSelectedZone] = useState<any>(null);
 
+  // Announcement state
+  const [annCategory, setAnnCategory] = useState('crowd congestion');
+  const [annLocation, setAnnLocation] = useState('North Entrance');
+  const [annSeverity, setAnnSeverity] = useState('warning');
+  const [annLanguage, setAnnLanguage] = useState('en');
+  const [annContext, setAnnContext] = useState('');
+  const [annResult, setAnnResult] = useState<{text: string, urgency: string, channels: string[]} | null>(null);
+  const [annLoading, setAnnLoading] = useState(false);
+  const [annCopied, setAnnCopied] = useState(false);
+
+  const generateAnnouncement = async () => {
+    setAnnLoading(true);
+    setAnnResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/dashboard/announcement`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          issue_type: `${annCategory} at ${annLocation} (${annSeverity} severity). Context: ${annContext}`,
+          language: annLanguage
+        })
+      });
+      if (!res.ok) throw new Error('Failed to generate');
+      const data = await res.json();
+      
+      const urgency = annSeverity === 'critical' ? 'CRITICAL' : annSeverity === 'warning' ? 'HIGH' : 'MEDIUM';
+      const channels = annSeverity === 'critical' 
+        ? ['Stadium PA Audio', 'VIP Lounge Displays', 'Mobile Push Notifications', 'Volunteer Radio Channel 1'] 
+        : ['Stadium PA Audio', 'Mobile Push Notifications'];
+
+      setAnnResult({
+        text: data.announcement_text,
+        urgency,
+        channels
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setAnnLoading(false);
+    }
+  };
+
+  const getTimelineEvents = () => {
+    const events: any[] = [];
+    
+    telemetry.crowd_levels?.forEach((c: any) => {
+      if (c.density >= 90) {
+        events.push({
+          time: '14:32',
+          type: 'Crowd Capacity Alert',
+          location: c.name,
+          severity: 'Critical',
+          action: 'Rerouting flow & deploying emergency volunteers',
+          status: 'Active'
+        });
+      } else if (c.density >= 75) {
+        events.push({
+          time: '14:15',
+          type: 'Crowd Surge Warning',
+          location: c.name,
+          severity: 'High',
+          action: 'Opening overflow lanes',
+          status: 'Active'
+        });
+      }
+    });
+
+    telemetry.transport_status?.forEach((t: any) => {
+      if (t.status === 'Delayed' || t.status === 'delayed') {
+        events.push({
+          time: '14:10',
+          type: 'Transit Delay',
+          location: t.line || t.route,
+          severity: 'Medium',
+          action: 'Announcing alternative transport options',
+          status: 'Active'
+        });
+      }
+    });
+
+    telemetry.medical_requests?.forEach((m: any) => {
+      events.push({
+        time: '14:05',
+        type: 'Medical Emergency',
+        location: m.location,
+        severity: m.status === 'urgent' ? 'Critical' : 'Medium',
+        action: m.description || 'First Aid dispatched',
+        status: 'Dispatched'
+      });
+    });
+
+    telemetry.incident_summary?.forEach((i: any) => {
+      events.push({
+        time: '13:55',
+        type: String(i.incident_type).toUpperCase(),
+        location: i.location,
+        severity: i.severity || 'Medium',
+        action: i.recommended_action || 'Staff alerted',
+        status: 'Action Taken'
+      });
+    });
+
+    return events;
+  };
+
   const fetchDashboard = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/v1/dashboard`);
@@ -429,8 +534,13 @@ const OrganizerDashboard = () => {
                         </div>
                       </div>
 
-                      <div className="p-4 bg-fifa-primary/10 border border-fifa-primary/20 rounded-xl">
-                        <h4 className="text-xs font-bold text-fifa-primary uppercase tracking-wider mb-1">AI Recommendation</h4>
+                      <div className="p-4 bg-fifa-primary/10 border border-fifa-primary/20 rounded-xl space-y-2">
+                        <div className="flex justify-between items-center border-b border-white/5 pb-1">
+                          <h4 className="text-xs font-bold text-fifa-primary uppercase tracking-wider">AI Recommendation</h4>
+                          <span className="text-[9px] bg-fifa-secondary/20 text-fifa-secondary px-1.5 py-0.5 rounded font-bold">
+                            CONFIDENCE: {selectedZone.density >= 90 ? '98%' : selectedZone.density >= 75 ? '92%' : '88%'}
+                          </span>
+                        </div>
                         <p className="text-xs text-slate-300 leading-relaxed">
                           {selectedZone.density >= 90 
                             ? `Critical congestion at ${selectedZone.name}. Rerouting all incoming fan traffic to secondary gates and deploying standby volunteer scanners.`
@@ -438,6 +548,15 @@ const OrganizerDashboard = () => {
                             ? `Increasing arrival flow. Recommend opening standby queue lanes to stabilize wait times.`
                             : `Flow rates are optimal. Continue monitoring standard gates.`}
                         </p>
+                        <div className="text-[10px] text-slate-400 space-y-1 pt-1.5 border-t border-white/5">
+                          <div><span className="font-semibold text-slate-300">Decision Factors:</span> Density ({selectedZone.density}%), Trend ({selectedZone.trend})</div>
+                          <div><span className="font-semibold text-slate-300">Suggested Action:</span> {selectedZone.density >= 75 ? 'Open Overflow Gates' : 'Maintain Standard Operations'}</div>
+                          <div><span className="font-semibold text-slate-300">Alternative:</span> Reroute to adjacent sections</div>
+                          <div className="flex items-center gap-1 mt-1 text-[9px] font-bold text-slate-400 uppercase">
+                            <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+                            Data Source: Simulated Telemetry
+                          </div>
+                        </div>
                       </div>
 
                       <button 
@@ -603,6 +722,226 @@ const OrganizerDashboard = () => {
                 </defs>
               </AreaChart>
             </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Public Announcement Generator & Match Day Operational Timeline */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in"
+        >
+          {/* Announcement Card */}
+          <div className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col justify-between relative overflow-hidden border border-white/5 shadow-xl">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-fifa-primary/10 rounded-full blur-[40px]" />
+            <h3 className="text-xl font-bold mb-6 tracking-tight text-white flex items-center gap-2 relative z-10">
+              <Zap className="w-5 h-5 text-fifa-primary" /> Public Announcement Generator
+            </h3>
+            
+            <div className="space-y-4 relative z-10 flex-1">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="ann-cat" className="block text-xs font-semibold text-slate-400 mb-1.5">Category</label>
+                  <select 
+                    id="ann-cat"
+                    value={annCategory} 
+                    onChange={(e) => setAnnCategory(e.target.value)}
+                    className="w-full p-2 bg-slate-900 border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-fifa-primary"
+                  >
+                    <option value="crowd congestion">Crowd Congestion</option>
+                    <option value="gate closure">Gate Closure</option>
+                    <option value="weather alert">Weather Alert</option>
+                    <option value="transport delay">Transport Delay</option>
+                    <option value="medical assistance">Medical Assistance</option>
+                    <option value="lost child">Lost Child</option>
+                    <option value="emergency evacuation">Emergency Evacuation</option>
+                    <option value="accessibility notice">Accessibility Notice</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="ann-lang" className="block text-xs font-semibold text-slate-400 mb-1.5">Language</label>
+                  <select 
+                    id="ann-lang"
+                    value={annLanguage} 
+                    onChange={(e) => setAnnLanguage(e.target.value)}
+                    className="w-full p-2 bg-slate-900 border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-fifa-primary"
+                  >
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="pt">Portuguese</option>
+                    <option value="ar">Arabic</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="ann-loc" className="block text-xs font-semibold text-slate-400 mb-1.5">Location</label>
+                  <input 
+                    id="ann-loc"
+                    type="text" 
+                    value={annLocation} 
+                    onChange={(e) => setAnnLocation(e.target.value)}
+                    className="w-full p-2 bg-slate-900 border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-fifa-primary"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="ann-sev" className="block text-xs font-semibold text-slate-400 mb-1.5">Severity</label>
+                  <select 
+                    id="ann-sev"
+                    value={annSeverity} 
+                    onChange={(e) => setAnnSeverity(e.target.value)}
+                    className="w-full p-2 bg-slate-900 border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-fifa-primary"
+                  >
+                    <option value="info">Info</option>
+                    <option value="warning">Warning</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="ann-ctx" className="block text-xs font-semibold text-slate-400 mb-1.5">Extra Context (Optional)</label>
+                <input 
+                  id="ann-ctx"
+                  type="text" 
+                  value={annContext} 
+                  placeholder="e.g. Reroute via Gate C" 
+                  onChange={(e) => setAnnContext(e.target.value)}
+                  className="w-full p-2 bg-slate-900 border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-fifa-primary"
+                />
+              </div>
+
+              <button 
+                onClick={generateAnnouncement}
+                disabled={annLoading}
+                className="w-full py-2.5 bg-fifa-primary text-black font-extrabold rounded-xl text-xs uppercase tracking-wider hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+              >
+                {annLoading ? <Loader2 className="w-4.5 h-4.5 animate-spin" /> : <Zap className="w-4.5 h-4.5" />}
+                Generate PA Broadcast
+              </button>
+
+              {annResult && (
+                <div className="p-4 bg-slate-900/80 border border-white/10 rounded-xl space-y-3 animate-fade-in">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded border border-red-500/20">
+                      {annResult.urgency} Urgency
+                    </span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(annResult.text);
+                        setAnnCopied(true);
+                        setTimeout(() => setAnnCopied(false), 2000);
+                      }}
+                      className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                    >
+                      {annCopied ? 'Copied!' : 'Copy Text'}
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-200 leading-relaxed italic">"{annResult.text}"</p>
+                  <div className="border-t border-white/5 pt-2">
+                    <div className="text-[10px] text-slate-400 font-semibold mb-1">Recommended Delivery Channels:</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {annResult.channels.map((ch: string, i: number) => (
+                        <span key={i} className="text-[9px] font-semibold bg-white/5 border border-white/5 text-slate-300 px-2 py-0.5 rounded-full">
+                          {ch}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Timeline Card */}
+          <div className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col justify-between relative overflow-hidden border border-white/5 shadow-xl">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-fifa-secondary/10 rounded-full blur-[40px]" />
+            <h3 className="text-xl font-bold mb-6 tracking-tight text-white flex items-center gap-2 relative z-10">
+              <FileText className="w-5 h-5 text-fifa-secondary" /> Match Day Operational Timeline
+            </h3>
+
+            <div className="space-y-3.5 flex-1 relative z-10 overflow-y-auto max-h-[340px] pr-2 custom-scrollbar">
+              {getTimelineEvents().length > 0 ? (
+                getTimelineEvents().map((evt: any, i: number) => (
+                  <div key={i} className="flex gap-4 p-3 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/5 transition-colors">
+                    <div className="text-xs font-mono font-bold text-fifa-secondary pt-0.5">{evt.time}</div>
+                    <div className="flex-1 space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-200">{evt.type}</span>
+                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                          evt.severity === 'Critical' ? 'bg-red-500/20 text-red-400' :
+                          evt.severity === 'High' ? 'bg-orange-500/20 text-orange-400' :
+                          'bg-blue-500/20 text-blue-400'
+                        }`}>
+                          {evt.severity}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        <span className="font-semibold text-slate-300">Location:</span> {evt.location}
+                      </div>
+                      <div className="text-xs text-slate-300 leading-relaxed">
+                        <span className="font-semibold text-slate-400">Action:</span> {evt.action}
+                      </div>
+                      <div className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        {evt.status}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-slate-400 italic text-center py-12">All systems nominal. No incidents reported in timeline.</div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Accessibility screen-reader fallback table */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="lg:col-span-3 glass-card p-6 md:p-8 rounded-[24px] border border-white/5 shadow-xl"
+        >
+          <h3 className="text-lg font-bold mb-4 tracking-tight text-white">Stadium Zone Density Status & Sustainability Guide</h3>
+          <p className="text-xs text-slate-400 mb-4">This screen-reader friendly table lists live crowd densities and sustainability recommendations for each stadium zone.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/10 text-xs font-bold text-slate-400">
+                  <th className="pb-3 pr-4">Zone Name</th>
+                  <th className="pb-3 px-4">Density</th>
+                  <th className="pb-3 px-4">Status</th>
+                  <th className="pb-3 px-4">Trend</th>
+                  <th className="pb-3 pl-4">Eco-Friendly Guidance</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 text-xs text-slate-300">
+                {telemetry?.crowd_levels?.map((zone: any) => {
+                  let ecoAdvice = "Refill reusable water bottles at hydration units near gate. Recycle cup at bins.";
+                  if (zone.name === 'North Entrance') ecoAdvice = "Highly congested. Reroute via Gate C (East Concourse) using green bus lines.";
+                  if (zone.name === 'South Plaza') ecoAdvice = "Low traffic. Accessible restrooms and EV transit shuttles available here.";
+                  return (
+                    <tr key={zone.id}>
+                      <td className="py-3.5 pr-4 font-semibold text-white">{zone.name}</td>
+                      <td className={`py-3.5 px-4 font-mono font-bold ${
+                        zone.density >= 90 ? 'text-red-400' : zone.density >= 75 ? 'text-orange-400' : 'text-emerald-400'
+                      }`}>{zone.density}%</td>
+                      <td className="py-3.5 px-4">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          zone.density >= 90 ? 'bg-red-500/10 text-red-400' : zone.density >= 75 ? 'bg-orange-500/10 text-orange-400' : 'bg-emerald-500/10 text-emerald-400'
+                        }`}>{zone.status}</span>
+                      </td>
+                      <td className="py-3.5 px-4 capitalize">{zone.trend}</td>
+                      <td className="py-3.5 pl-4 text-slate-400 italic">{ecoAdvice}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </motion.div>
       </div>

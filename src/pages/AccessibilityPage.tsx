@@ -3,9 +3,30 @@ import { Accessibility, Eye, Map, Globe, Ear } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const AccessibilityPage = () => {
-  const [largeText, setLargeText] = useState(false);
-  const [highContrast, setHighContrast] = useState(false);
-  const [voiceAssist, setVoiceAssist] = useState(true);
+  const [largeText, setLargeText] = useState(localStorage.getItem('largeText') === 'true');
+  const [highContrast, setHighContrast] = useState(localStorage.getItem('highContrast') === 'true');
+  const [voiceAssist, setVoiceAssist] = useState(localStorage.getItem('voiceAssist') !== 'false');
+
+  const toggleLargeText = () => {
+    const val = !largeText;
+    localStorage.setItem('largeText', String(val));
+    setLargeText(val);
+    window.dispatchEvent(new Event('accessibility-change'));
+  };
+
+  const toggleHighContrast = () => {
+    const val = !highContrast;
+    localStorage.setItem('highContrast', String(val));
+    setHighContrast(val);
+    window.dispatchEvent(new Event('accessibility-change'));
+  };
+
+  const toggleVoiceAssist = () => {
+    const val = !voiceAssist;
+    localStorage.setItem('voiceAssist', String(val));
+    setVoiceAssist(val);
+    window.dispatchEvent(new Event('accessibility-change'));
+  };
 
   return (
     <motion.div 
@@ -17,7 +38,7 @@ const AccessibilityPage = () => {
       <header className="mb-10 text-center md:text-left">
         <h1 className="text-4xl font-bold mb-3 tracking-tight flex items-center justify-center md:justify-start gap-4">
           <div className="p-4 glass-panel rounded-[20px] shadow-lg">
-            <Accessibility className="w-8 h-8 text-fifa-primary" />
+            <Accessibility className="w-8 h-8 text-fifa-primary" aria-hidden="true" />
           </div>
           Accessibility Hub
         </h1>
@@ -39,7 +60,7 @@ const AccessibilityPage = () => {
                 <div className="text-sm text-slate-400">Increase font size across the app</div>
               </div>
               <button 
-                onClick={() => setLargeText(!largeText)}
+                onClick={toggleLargeText}
                 className={`w-14 h-8 rounded-full p-1 transition-colors relative shadow-inner ${largeText ? 'bg-fifa-primary' : 'bg-slate-700'}`}
               >
                 <motion.div 
@@ -58,7 +79,7 @@ const AccessibilityPage = () => {
                 <div className="text-sm text-slate-400">Maximize visual readability</div>
               </div>
               <button 
-                onClick={() => setHighContrast(!highContrast)}
+                onClick={toggleHighContrast}
                 className={`w-14 h-8 rounded-full p-1 transition-colors relative shadow-inner ${highContrast ? 'bg-fifa-primary' : 'bg-slate-700'}`}
               >
                 <motion.div 
@@ -77,7 +98,7 @@ const AccessibilityPage = () => {
                 <div className="text-sm text-slate-400">Enable screen reader announcements</div>
               </div>
               <button 
-                onClick={() => setVoiceAssist(!voiceAssist)}
+                onClick={toggleVoiceAssist}
                 className={`w-14 h-8 rounded-full p-1 transition-colors relative shadow-inner ${voiceAssist ? 'bg-fifa-primary' : 'bg-slate-700'}`}
               >
                 <motion.div 

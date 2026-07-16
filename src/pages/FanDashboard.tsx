@@ -117,6 +117,9 @@ const FanDashboard = () => {
     visible: { y: 0, opacity: 1, transition: { type: "spring" as const, stiffness: 300, damping: 24 } }
   };
 
+  const match = matchData?.match || matchData;
+  const matchSource = matchData?.source_type || "fallback";
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -130,7 +133,7 @@ const FanDashboard = () => {
       </header>
 
       {/* Match Summary Widget */}
-      {matchData && (
+      {match && match.home_team && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -141,26 +144,29 @@ const FanDashboard = () => {
           <div className="flex items-center gap-6 w-full md:w-auto mb-6 md:mb-0 relative z-10">
             <div className="text-center">
               <div className="text-3xl md:text-5xl font-bold text-white mb-2">
-                <img src={matchData.home_team.logo} alt={matchData.home_team.name} className="w-16 h-16 md:w-20 md:h-20 object-contain mx-auto" />
+                <img src={match.home_team.logo} alt={match.home_team.name} className="w-16 h-16 md:w-20 md:h-20 object-contain mx-auto" />
               </div>
-              <div className="text-slate-300 font-medium">{matchData.home_team.name}</div>
+              <div className="text-slate-300 font-medium">{match.home_team.name}</div>
             </div>
             
-            <div className="flex flex-col items-center px-4 md:px-8">
+            <div className="flex flex-col items-center px-4 md:px-8 animate-fade-in">
               <div className="flex items-center gap-2 mb-2 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-full">
                 <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-xs font-bold text-red-400">{matchData.time}</span>
+                <span className="text-xs font-bold text-red-400">{match.time}</span>
               </div>
               <div className="text-4xl md:text-6xl font-black text-white tracking-tighter">
-                {matchData.home_team.score} - {matchData.away_team.score}
+                {match.home_team.score} - {match.away_team.score}
+              </div>
+              <div className="mt-1.5 text-[9px] text-slate-400 font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-white/5 border border-white/5">
+                {matchSource} data
               </div>
             </div>
 
             <div className="text-center">
               <div className="text-3xl md:text-5xl font-bold text-white mb-2">
-                <img src={matchData.away_team.logo} alt={matchData.away_team.name} className="w-16 h-16 md:w-20 md:h-20 object-contain mx-auto" />
+                <img src={match.away_team.logo} alt={match.away_team.name} className="w-16 h-16 md:w-20 md:h-20 object-contain mx-auto" />
               </div>
-              <div className="text-slate-300 font-medium">{matchData.away_team.name}</div>
+              <div className="text-slate-300 font-medium">{match.away_team.name}</div>
             </div>
           </div>
 
@@ -170,8 +176,8 @@ const FanDashboard = () => {
               Key Events
             </h3>
             <div className="space-y-3 max-h-32 overflow-y-auto custom-scrollbar pr-2">
-              {matchData.events && matchData.events.length > 0 ? (
-                matchData.events.map((event: any, idx: number) => (
+              {match.events && match.events.length > 0 ? (
+                match.events.map((event: any, idx: number) => (
                   <div key={idx} className="flex justify-between items-center text-sm">
                     <span className="text-fifa-primary font-bold">{event.minute}</span>
                     <span className="text-slate-200 text-right">

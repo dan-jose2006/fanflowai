@@ -87,7 +87,7 @@ async def build_enriched_context(
         )
 
     # Transport delays
-    delays = [t["route"] for t in telemetry.get("transport", []) if t.get("status") == "delayed"]
+    delays = [t.get("line") or t.get("route", "Unknown Route") for t in telemetry.get("transport", []) if str(t.get("status")).lower() == "delayed"]
     if delays:
         context_parts.append(f"Transport Delays: {', '.join(delays)}")
     else:

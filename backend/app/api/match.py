@@ -1,5 +1,6 @@
 import os
 import httpx
+import datetime
 from fastapi import APIRouter
 from typing import Any, Dict
 
@@ -32,10 +33,16 @@ STATIC_FALLBACK = {
     ],
     "possession": {"home": 58, "away": 42},
     "stadium": "Lusail Iconic Stadium",
-    "attendance": "88,966",
-    "is_fallback": True
+    "attendance": "88,966"
 }
 
+# Module-level cache
+_CACHE: Dict[str, Any] = {
+    "data": None,
+    "timestamp": None
+}
+
+CACHE_DURATION_SECS = 60
 
 def _transform_fixture(fixture: dict) -> Dict[str, Any]:
     """Transform API-Sports fixture format to our simplified format."""
@@ -93,9 +100,25 @@ async def get_live_match() -> Dict[str, Any]:
     Falls back to the 2022 WC Final if no live match or API quota is exceeded.
     Always returns valid data — never 404.
     """
+    now = datetime.datetime.now()
+    
+    # Check cache validity
+    if _CACHE["data"] and _CACHE["timestamp"]:
+        if (now - _CACHE["timestamp"]).total_seconds() < CACHE_DURATION_SECS:
+            return {
+                "source_type": "cached",
+                "updated_at": _CACHE["timestamp"].isoformat(),
+                "match": _CACHE["data"]
+            }
+
     API_SPORTS_KEY = os.getenv("API_SPORTS_KEY")
     if not API_SPORTS_KEY:
-        return STATIC_FALLBACK
+        # No key => return fallback directly
+        return {
+            "source_type": "fallback",
+            "updated_at": now.isoformat(),
+            "match": STATIC_FALLBACK
+        }
 
     headers = {"x-apisports-key": API_SPORTS_KEY}
 
@@ -110,7 +133,7 @@ async def get_live_match() -> Dict[str, Any]:
             data = response.json()
             fixtures = data.get("response", [])
 
-            # 2. Fallback: fetch the 2022 World Cup Final by fixture ID (free-tier compatible)
+            # 2. Fallback: fetch the 2022 World Cup Final by fixture ID
             if not fixtures:
                 fallback_response = await client.get(
                     f"{BASE_URL}/fixtures",
@@ -121,11 +144,40 @@ async def get_live_match() -> Dict[str, Any]:
                 fixtures = fallback_data.get("response", [])
 
             if not fixtures:
-                return STATIC_FALLBACK
+                # If both queries returned empty response, use cache if available, else static
+                if _CACHE["data"]:
+                    return {
+                        "source_type": "cached",
+                        "updated_at": _CACHE["timestamp"].isoformat() if _CACHE["timestamp"] else now.isoformat(),
+                        "match": _CACHE["data"]
+                    }
+                return {
+                    "source_type": "fallback",
+                    "updated_at": now.isoformat(),
+                    "match": STATIC_FALLBACK
+                }
 
-            return _transform_fixture(fixtures[0])
+            transformed = _transform_fixture(fixtures[0])
+            _CACHE["data"] = transformed
+            _CACHE["timestamp"] = now
+
+            return {
+                "source_type": "live",
+                "updated_at": now.isoformat(),
+                "match": transformed
+            }
 
     except Exception:
-        # Network error, timeout, quota exceeded — always return static data
-        return STATIC_FALLBACK
+        # On error/timeout, use cache if exists, otherwise fallback
+        if _CACHE["data"]:
+            return {
+                "source_type": "cached",
+                "updated_at": _CACHE["timestamp"].isoformat() if _CACHE["timestamp"] else now.isoformat(),
+                "match": _CACHE["data"]
+            }
+        return {
+            "source_type": "fallback",
+            "updated_at": now.isoformat(),
+            "match": STATIC_FALLBACK
+        }
 
