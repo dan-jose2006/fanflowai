@@ -8,6 +8,19 @@ export default defineConfig({
     tailwindcss(),
     react(),
   ],
-// Test configuration removed (handled separately in vitest.config.ts)
+  server: {
+    proxy: {
+      // Forward /api/* and /health to the FastAPI backend
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
+  },
+  // Test configuration removed (handled separately in vitest.config.ts)
 })
 

@@ -30,9 +30,9 @@ async def trigger_event(event: SimulationEvent):
         elif event.event_type == "transport_delay":
             transport = context.get("transport", [])
             for t in transport:
-                if t["route"] == event.location:
-                    t["status"] = "delayed"
-                    t["wait_time"] = "45 mins"
+                if t.get("line") == event.location:
+                    t["status"] = "Delayed"
+                    t["next_departure"] = "45 min"
             await update_mock_state("transport", transport)
             
         elif event.event_type == "medical_emergency":

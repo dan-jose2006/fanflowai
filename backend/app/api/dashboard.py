@@ -26,8 +26,8 @@ async def get_dashboard():
                 insights.append({"type": "warning", "message": f"{c['name']} density is high. Consider deploying volunteers."})
                 
         for t in telemetry.get("transport", []):
-            if t.get("status") == "delayed":
-                insights.append({"type": "alert", "message": f"Transport delay on {t['route']}. Announce alternative routes."})
+            if t.get("status") == "Delayed":
+                insights.append({"type": "warning", "message": f"Transport delay on {t.get('line', 'Route')}. Announce alternative routes."})
 
         # Append persisted incidents / medical requests
         for inc in incidents:

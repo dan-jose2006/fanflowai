@@ -16,10 +16,10 @@ const STATIC_CROWD_LEVELS = [
 const OrganizerDashboard = () => {
   const [chartData, setChartData] = useState<any[]>(STATIC_CROWD_LEVELS.map(d => ({ name: d.name, density: d.density })));
   const [telemetry, setTelemetry] = useState<any>({ crowd_levels: STATIC_CROWD_LEVELS, active_insights: [] });
-  const [summary, setSummary] = useState<{text: string, loading: boolean} | null>(null);
+  const [summary, setSummary] = useState<{text: string, recommendations: string[], loading: boolean} | null>(null);
   const [simulatorStatus, setSimulatorStatus] = useState<string | null>(null);
 
-  const [viewMode, setViewMode] = useState<'map' | 'chart'>('map');
+  const [viewMode, setViewMode] = useState<'3d' | 'heatmap' | 'chart'>('3d');
   const [selectedZone, setSelectedZone] = useState<any>(null);
 
   const fetchDashboard = async () => {
@@ -62,10 +62,10 @@ const OrganizerDashboard = () => {
 
   const generateSummary = async () => {
     try {
-      setSummary({ text: '', loading: true });
+      setSummary({ text: '', recommendations: [], loading: true });
       const res = await fetch(`${API_BASE}/api/v1/dashboard/summary`, { method: 'POST' });
       const data = await res.json();
-      setSummary({ text: data.summary, loading: false });
+      setSummary({ text: data.summary, recommendations: data.recommendations || [], loading: false });
     } catch (e) {
       console.error(e);
       setSummary(null);
@@ -113,18 +113,24 @@ const OrganizerDashboard = () => {
             {/* Simulator Dropdown */}
             <div className="absolute right-0 top-full mt-2 w-64 glass-card p-2 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 translate-y-2 group-hover:translate-y-0">
               <div className="text-xs font-bold text-slate-400 mb-2 px-2 uppercase tracking-wider">Trigger Events</div>
-              <button onClick={() => triggerSimulation('heavy_crowd', 'North Gate', 'critical')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm text-slate-200 transition-colors">
-                🌊 Heavy Crowd (North Gate)
+              <button onClick={() => triggerSimulation('heavy_crowd', 'North Entrance', 'critical')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm text-slate-200 transition-colors">
+                🌊 Heavy Crowd (North Entrance)
               </button>
-              <button onClick={() => triggerSimulation('medical_emergency', 'Section 112', 'urgent')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm text-slate-200 transition-colors">
-                🚑 Medical Emergency (Sec 112)
+              <button onClick={() => triggerSimulation('heavy_crowd', 'Food Court A', 'critical')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm text-slate-200 transition-colors">
+                🍔 Crowd Surge (Food Court A)
+              </button>
+              <button onClick={() => triggerSimulation('transport_delay', 'Route 42', 'warning')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm text-slate-200 transition-colors">
+                🚌 Bus Delay (Route 42)
+              </button>
+              <button onClick={() => triggerSimulation('medical_emergency', 'Section 120', 'urgent')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm text-slate-200 transition-colors">
+                🚑 Medical SOS (Section 120)
               </button>
               <button onClick={() => triggerSimulation('weather_warning', 'stadium', 'Heavy Rain')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm text-slate-200 transition-colors">
                 ⛈️ Heavy Rain Warning
               </button>
               {simulatorStatus === 'success' && (
-                <div className="mt-2 text-xs text-emerald-400 flex items-center gap-1 justify-center">
-                  <Check className="w-3 h-3" /> Event Injected
+                <div className="mt-2 text-xs text-emerald-400 flex items-center gap-1 justify-center font-bold">
+                  <Check className="w-3.5 h-3.5" /> Simulation Injected
                 </div>
               )}
             </div>
@@ -147,14 +153,25 @@ const OrganizerDashboard = () => {
                  <Sparkles className="w-5 h-5" /> Executive AI Summary
                </h2>
                <div className="relative z-10 text-slate-200 leading-relaxed text-[15px]">
-                 {summary.loading ? (
-                   <div className="flex items-center gap-3 text-slate-400">
-                     <Loader2 className="w-5 h-5 animate-spin text-fifa-secondary" />
-                     Analyzing massive telemetry datasets...
-                   </div>
-                 ) : (
-                   <span dangerouslySetInnerHTML={{ __html: summary.text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>') }} />
-                 )}
+                  {summary.loading ? (
+                    <div className="flex items-center gap-3 text-slate-400">
+                      <Loader2 className="w-5 h-5 animate-spin text-fifa-secondary" />
+                      Analyzing massive telemetry datasets...
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="font-semibold text-white text-[16px]">{summary.text}</p>
+                      {summary.recommendations && summary.recommendations.length > 0 && (
+                        <ul className="list-disc pl-5 space-y-2 text-slate-300 text-sm">
+                          {summary.recommendations.map((rec, index) => (
+                            <li key={index} className="leading-relaxed">
+                              {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
                </div>
             </div>
           </motion.div>
@@ -199,8 +216,14 @@ const OrganizerDashboard = () => {
             <h2 className="text-xl font-bold tracking-tight text-white">Live Stadium Operations</h2>
             <div className="flex bg-slate-950/60 p-1 rounded-xl border border-white/5">
               <button 
-                onClick={() => setViewMode('map')} 
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'map' ? 'bg-fifa-primary text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                onClick={() => setViewMode('3d')} 
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === '3d' ? 'bg-fifa-primary text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                3D Stadium View
+              </button>
+              <button 
+                onClick={() => setViewMode('heatmap')} 
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'heatmap' ? 'bg-fifa-primary text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
               >
                 Density Heatmap
               </button>
@@ -213,25 +236,40 @@ const OrganizerDashboard = () => {
             </div>
           </div>
 
-          {viewMode === 'map' ? (
+          {viewMode === '3d' || viewMode === 'heatmap' ? (
             <div className="flex flex-col md:flex-row gap-6 items-center justify-center py-4">
-                {/* Stadium Heatmap Image Container with Interactive Hotspots */}
-                <div className="relative w-full max-w-[500px] aspect-[16/9] md:aspect-video rounded-2xl border border-white/10 overflow-hidden shadow-2xl bg-slate-950">
-                  <motion.div 
-                    className="w-full h-full relative"
-                    animate={{
-                      scale: selectedZone ? 2.5 : 1,
-                      transformOrigin: selectedZone ? selectedZone.origin : "center center"
-                    }}
-                    transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                  >
-                    <img 
-                      src="/stadium-heatmap.png" 
-                      alt="Live Stadium Heatmap" 
-                      className="w-full h-full object-cover opacity-90"
+                {viewMode === '3d' ? (
+                  <div className="relative w-full max-w-[500px] aspect-[16/9] md:aspect-video rounded-2xl border border-white/10 overflow-hidden shadow-2xl bg-slate-950">
+                    <iframe
+                      title="Football Stadium 3D Model"
+                      frameBorder="0"
+                      allowFullScreen
+                      allow="autoplay; fullscreen; xr-spatial-tracking"
+                      src="https://sketchfab.com/models/9c64652cb715419e836d030033ad5c17/embed?autostart=1&ui_theme=dark&ui_infos=0&ui_watermark=0&ui_help=0&ui_settings=0&ui_inspector=0&ui_annotations=0&ui_stop=0&camera=0"
+                      className="w-full h-full"
+                      style={{ filter: 'saturate(0.4) contrast(1.2) brightness(0.9)' }}
                     />
-                    
-                    {/* Overlay pulsing hot nodes */}
+                    {/* Thermal color overlay for live heatmap rendering */}
+                    <div 
+                      className="absolute inset-0 pointer-events-none z-10 opacity-75 mix-blend-color" 
+                      style={{
+                        background: `
+                          radial-gradient(circle at 47% 22%, rgba(239, 68, 68, 0.95) 0%, rgba(249, 115, 22, 0.6) 20%, rgba(234, 179, 8, 0.3) 40%, transparent 65%),
+                          radial-gradient(circle at 23% 55%, rgba(239, 68, 68, 0.95) 0%, rgba(249, 115, 22, 0.6) 20%, rgba(234, 179, 8, 0.3) 40%, transparent 65%),
+                          radial-gradient(circle at 35% 72%, rgba(16, 185, 129, 0.6) 0%, rgba(59, 130, 246, 0.3) 30%, transparent 55%),
+                          radial-gradient(circle at 70% 40%, rgba(16, 185, 129, 0.5) 0%, rgba(59, 130, 246, 0.2) 30%, transparent 55%),
+                          radial-gradient(circle at 45% 45%, rgba(249, 115, 22, 0.75) 0%, rgba(234, 179, 8, 0.4) 25%, transparent 50%),
+                          linear-gradient(135deg, rgba(30, 58, 138, 0.45) 0%, rgba(15, 23, 42, 0.15) 100%)
+                        `
+                      }}
+                    />
+                    {/* Live indicator badge */}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 pointer-events-none z-10">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Live 3D View</span>
+                    </div>
+
+                    {/* Overlay pulsing hot nodes on the 3D model */}
                     {telemetry?.crowd_levels?.map((zone: any) => {
                       let coords = { top: '50%', left: '50%', origin: 'center center' };
                       switch (zone.name) {
@@ -258,7 +296,7 @@ const OrganizerDashboard = () => {
                       return (
                         <div 
                           key={zone.id}
-                          className="absolute group/node cursor-pointer -translate-x-1/2 -translate-y-1/2"
+                          className="absolute group/node cursor-pointer -translate-x-1/2 -translate-y-1/2 z-10"
                           style={{ top: coords.top, left: coords.left }}
                           onClick={() => setSelectedZone({ ...zone, origin: coords.origin })}
                         >
@@ -267,7 +305,7 @@ const OrganizerDashboard = () => {
                           {/* Inner Dot */}
                           <span className={`relative inline-flex rounded-full h-4 w-4 border border-white/20 ${glowColor}`} />
                           
-                          {/* Hover Tooltip (Only show if not zoomed in on another zone) */}
+                          {/* Hover Tooltip */}
                           {(!selectedZone || selectedZone.id === zone.id) && (
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 p-2 rounded-lg bg-slate-950/90 border border-white/10 text-center opacity-0 pointer-events-none group-hover/node:opacity-100 transition-opacity z-50 backdrop-blur-md shadow-xl">
                               <div className="text-[10px] font-bold text-slate-400 uppercase">{zone.name}</div>
@@ -279,18 +317,85 @@ const OrganizerDashboard = () => {
                         </div>
                       );
                     })}
-                  </motion.div>
-
-                  {/* Reset Zoom Button inside the Map Frame */}
-                  {selectedZone && (
-                    <button 
-                      onClick={() => setSelectedZone(null)}
-                      className="absolute top-4 left-4 bg-slate-950/80 border border-white/10 hover:bg-white/10 text-white font-bold text-xs px-3 py-1.5 rounded-lg backdrop-blur-md transition-colors z-40"
+                  </div>
+                ) : (
+                  /* Stadium Heatmap Image Container with Interactive Hotspots */
+                  <div className="relative w-full max-w-[500px] aspect-[16/9] md:aspect-video rounded-2xl border border-white/10 overflow-hidden shadow-2xl bg-slate-950">
+                    <motion.div 
+                      className="w-full h-full relative"
+                      animate={{
+                        scale: selectedZone ? 2.5 : 1,
+                        transformOrigin: selectedZone ? selectedZone.origin : "center center"
+                      }}
+                      transition={{ type: "spring", stiffness: 100, damping: 20 }}
                     >
-                      ← Zoom Out
-                    </button>
-                  )}
-                </div>
+                      <img 
+                        src="/stadium-heatmap.png" 
+                        alt="Live Stadium Heatmap" 
+                        className="w-full h-full object-cover opacity-90"
+                      />
+                      
+                      {/* Overlay pulsing hot nodes */}
+                      {telemetry?.crowd_levels?.map((zone: any) => {
+                        let coords = { top: '50%', left: '50%', origin: 'center center' };
+                        switch (zone.name) {
+                          case 'North Entrance': coords = { top: '22%', left: '47%', origin: '47% 22%' }; break;
+                          case 'South Plaza': coords = { top: '72%', left: '35%', origin: '35% 72%' }; break;
+                          case 'Food Court A': coords = { top: '55%', left: '23%', origin: '23% 55%' }; break;
+                          case 'East Concourse': coords = { top: '40%', left: '70%', origin: '70% 40%' }; break;
+                          case 'Fan Zone VIP': coords = { top: '45%', left: '45%', origin: '45% 45%' }; break;
+                        }
+
+                        const isCritical = zone.density >= 90;
+                        const isHigh = zone.density >= 75 && zone.density < 90;
+                        
+                        let glowColor = "bg-emerald-500 shadow-[0_0_15px_#10b981]";
+                        let pulseColor = "border-emerald-500 bg-emerald-500/20";
+                        if (isCritical) {
+                          glowColor = "bg-red-500 shadow-[0_0_15px_#ef4444]";
+                          pulseColor = "border-red-500 bg-red-500/20";
+                        } else if (isHigh) {
+                          glowColor = "bg-orange-500 shadow-[0_0_15px_#f97316]";
+                          pulseColor = "border-orange-500 bg-orange-500/20";
+                        }
+
+                        return (
+                          <div 
+                            key={zone.id}
+                            className="absolute group/node cursor-pointer -translate-x-1/2 -translate-y-1/2"
+                            style={{ top: coords.top, left: coords.left }}
+                            onClick={() => setSelectedZone({ ...zone, origin: coords.origin })}
+                          >
+                            {/* Pulse Ring */}
+                            <span className={`absolute inline-flex h-8 w-8 rounded-full border animate-ping opacity-75 ${pulseColor}`} />
+                            {/* Inner Dot */}
+                            <span className={`relative inline-flex rounded-full h-4 w-4 border border-white/20 ${glowColor}`} />
+                            
+                            {/* Hover Tooltip */}
+                            {(!selectedZone || selectedZone.id === zone.id) && (
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 p-2 rounded-lg bg-slate-950/90 border border-white/10 text-center opacity-0 pointer-events-none group-hover/node:opacity-100 transition-opacity z-50 backdrop-blur-md shadow-xl">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase">{zone.name}</div>
+                                <div className={`text-xs font-black mt-0.5 ${isCritical ? 'text-red-400' : isHigh ? 'text-orange-400' : 'text-emerald-400'}`}>
+                                  Density: {zone.density}%
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </motion.div>
+
+                    {/* Reset Zoom Button inside the Map Frame */}
+                    {selectedZone && (
+                      <button 
+                        onClick={() => setSelectedZone(null)}
+                        className="absolute top-4 left-4 bg-slate-950/80 border border-white/10 hover:bg-white/10 text-white font-bold text-xs px-3 py-1.5 rounded-lg backdrop-blur-md transition-colors z-40"
+                      >
+                        ← Zoom Out
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* Side Legend/Data summary or Detail Panel */}
                 <div className="flex-1 w-full space-y-3.5 min-h-[250px] flex flex-col justify-between">
@@ -386,7 +491,7 @@ const OrganizerDashboard = () => {
                       </div>
                     </>
                   )}
-              </div>
+                </div>
             </div>
           ) : (
             <div className="h-80 w-full p-2 bg-slate-950/20 rounded-2xl border border-white/[0.03] backdrop-blur-sm relative">
